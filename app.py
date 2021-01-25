@@ -1,10 +1,15 @@
-from flask import Flask, render_template, Response
 import cv2
 import numpy as np
+import configure_file
+from flask import Flask, render_template, Response
 
 app = Flask(__name__)
-
-camera = cv2.VideoCapture(0)
+camera = cv2.VideoCapture(configure_file.CAMERA_PATH)
+# ustawienia
+camera.set(cv2.CAP_PROP_FRAME_WIDTH, configure_file.FRAME_WIDTH)
+camera.set(cv2.CAP_PROP_FRAME_HEIGHT, configure_file.FRAME_HEIGHT)
+camera.set(cv2.CAP_PROP_BRIGHTNESS, configure_file.CAMERA_BRIGHTNESS)
+print("brightness", camera.get(cv2.CAP_PROP_BRIGHTNESS))
 
 
 def gen_frames():
@@ -45,6 +50,7 @@ def gen_frames():
                         for (x, y, r) in circles:
                             cv2.circle(contour_frame, (x, y), r, (0, 0, 0), 2)
                             cv2.putText(contour_frame, "OKRAG", (x, y), cv2.FONT_ITALIC, 1, (0, 0, 0))
+
         color_frame = frame.copy()
 
         hsv_frame = cv2.cvtColor(color_frame, cv2.COLOR_BGR2HSV)
@@ -79,18 +85,12 @@ def gen_frames():
                 color_frame = cv2.rectangle(color_frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
                 cv2.putText(color_frame, 'B', (x, y), cv2.FONT_ITALIC, 1.0, (255, 0, 0))
 
-        # v2.imshow("system detection", np.hstack([color_frame, contour_frame]))
-        # cv2.imshow('threshold', _threshold)
+        detection_frame = np.hstack([color_frame, contour_frame])
 
-        ret, buffer = cv2.imencode('.jpg', color_frame)
-        color_frame = buffer.tobytes()
+        ret, buffer = cv2.imencode('.jpg', detection_frame)
+        detection_frame = buffer.tobytes()
         yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + color_frame + b'\r\n')
-
-
-@app.route('/video_feed')
-def video_feed():
-    return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+               b'Content-Type: image/jpeg\r\n\r\n' + detection_frame + b'\r\n')
 
 
 @app.route('/')
@@ -98,6 +98,10 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/stream')
+def stream():
+    return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+
 if __name__ == '__main__':
-    # defining server ip address and port
-    app.run(host='localhost', port='5000', debug=True)
+    app.run(host=configure_file.HOST, port=configure_file.PORT, debug=configure_file.DEBUG)
