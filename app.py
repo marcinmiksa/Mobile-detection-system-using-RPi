@@ -9,7 +9,6 @@ camera = cv2.VideoCapture(configure_file.CAMERA_PATH)
 camera.set(cv2.CAP_PROP_FRAME_WIDTH, configure_file.FRAME_WIDTH)
 camera.set(cv2.CAP_PROP_FRAME_HEIGHT, configure_file.FRAME_HEIGHT)
 camera.set(cv2.CAP_PROP_BRIGHTNESS, configure_file.CAMERA_BRIGHTNESS)
-print("brightness", camera.get(cv2.CAP_PROP_BRIGHTNESS))
 
 
 def gen_frames():
@@ -86,7 +85,6 @@ def gen_frames():
                 cv2.putText(color_frame, 'B', (x, y), cv2.FONT_ITALIC, 1.0, (255, 0, 0))
 
         detection_frame = np.hstack([color_frame, contour_frame])
-
         ret, buffer = cv2.imencode('.jpg', detection_frame)
         detection_frame = buffer.tobytes()
         yield (b'--frame\r\n'
@@ -105,3 +103,6 @@ def stream():
 
 if __name__ == '__main__':
     app.run(host=configure_file.HOST, port=configure_file.PORT, debug=configure_file.DEBUG)
+
+# camera.release()
+# cv2.destroyAllWindows()
